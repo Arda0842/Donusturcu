@@ -380,7 +380,7 @@
 
       setStep(3, 'Çıktı dosyası oluşturuluyor...');
       convertedBlob = await buildOutput(aiText, out, from, base64, mediaType, currentFile);
-      convertedName = currentFile.name.replace(/\.[^.]+$/, '') + '_converted.' + out;
+      convertedName = currentFile.name.replace(/\.[^.]+$/, '') + '_converted.txt';
 
       setStep(4, 'Tamamlandı!');
       setTimeout(() => {
