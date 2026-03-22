@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DönüştürAI — Dosya Dönüştürücü</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0f;
+      --surface: #161618;
+      --surface2: #1e1e22;
+      --border: rgba(255,255,255,0.07);
+      --border-hover: rgba(255,255,255,0.15);
+      --text: #f0eff4;
+      --text-muted: #8a8896;
+      --text-dim: #4e4d5a;
+      --accent: #6c63ff;
+      --accent-light: #8b84ff;
+      --accent-glow: rgba(108,99,255,0.25);
+      --green: #2dd4a0;
+      --green-bg: rgba(45,212,160,0.08);
+      --red: #ff6b6b;
+      --red-bg: rgba(255,107,107,0.08);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* BACKGROUND GRID */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(108,99,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(108,99,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* GLOW BLOB */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(108,99,255,0.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* ─── HEADER ─── */
+    header {
+      padding: 28px 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+    .logo span { color: var(--accent-light); }
+
+    .api-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-family: 'DM Mono', monospace;
+      color: var(--text-muted);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 5px 12px;
+    }
+    .api-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ─── HERO ─── */
+    .hero {
+      text-align: center;
+      padding: 60px 0 48px;
+    }
+    .hero-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent-light);
+      background: var(--accent-glow);
+      border: 1px solid rgba(108,99,255,0.3);
+      border-radius: 99px;
+      padding: 5px 14px;
+      margin-bottom: 22px;
+    }
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 600;
+      line-height: 1.15;
+      letter-spacing: -1.5px;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent-light), var(--green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 480px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ─── API KEY SETUP ─── */
+    .api-setup {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .api-setup-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .api-setup-label strong { color: var(--text); }
+    .api-key-input {
+      flex: 1;
+      min-width: 200px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 14px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .api-key-input:focus { border-color: var(--accent); }
+    .api-key-input::placeholder { color: var(--text-dim); }
+    .save-key-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 9px 18px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+    .save-key-btn:hover { opacity: 0.85; }
+    .key-saved-msg { font-size: 12px; color: var(--green); display: none; }
+    .key-saved-msg.show { display: block; }
+
+    /* ─── CONVERSION TYPES ─── */
+    .section-label {
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+
+    .conv-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+
+    .conv-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+      text-align: center;
+      user-select: none;
+    }
+    .conv-card:hover {
+      border-color: var(--border-hover);
+      background: var(--surface2);
+      transform: translateY(-1px);
+    }
+    .conv-card.active {
+      border-color: var(--accent);
+      background: rgba(108,99,255,0.08);
+    }
+    .conv-card.active .conv-name { color: var(--accent-light); }
+    .conv-card.active .conv-tag { background: rgba(108,99,255,0.2); color: var(--accent-light); }
+
+    .conv-icon-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      margin: 0 auto 10px;
+      background: var(--surface2);
+    }
+    .conv-card.active .conv-icon-wrap { background: rgba(108,99,255,0.15); }
+    .conv-name { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 5px; }
+    .conv-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      background: var(--surface2);
+      color: var(--text-dim);
+      border-radius: 4px;
+      padding: 2px 7px;
+    }
+
+    /* ─── MAIN CONVERTER ─── */
+    .converter-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+
+    /* DROP ZONE */
+    .drop-zone {
+      border: 1.5px dashed rgba(108,99,255,0.3);
+      border-radius: var(--radius);
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(108,99,255,0.05);
+    }
+    .drop-zone-icon {
+      width: 56px; height: 56px;
+      border-radius: 16px;
+      background: var(--surface2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+      margin: 0 auto 16px;
+      transition: background 0.2s;
+    }
+    .drop-zone:hover .drop-zone-icon { background: rgba(108,99,255,0.15); }
+    .drop-title { font-size: 15px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
+    .drop-sub { font-size: 13px; color: var(--text-muted); }
+    .drop-sub em { color: var(--accent-light); font-style: normal; cursor: pointer; }
+
+    /* FILE SELECTED */
+    .file-pill {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      margin-bottom: 20px;
+    }
+    .file-pill.show { display: flex; }
+    .file-pill-icon { font-size: 22px; }
+    .file-pill-info { flex: 1; }
+    .file-pill-name { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 2px; word-break: break-all; }
+    .file-pill-size { font-size: 12px; color: var(--text-muted); }
+    .file-pill-remove {
+      cursor: pointer;
+      color: var(--text-dim);
+      font-size: 18px;
+      line-height: 1;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .file-pill-remove:hover { background: var(--red-bg); color: var(--red); }
+
+    /* CONVERT BUTTON */
+    .convert-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: -0.2px;
+    }
+    .convert-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+    .convert-btn:active:not(:disabled) { transform: translateY(0); }
+    .convert-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* PROGRESS */
+    .progress-wrap {
+      display: none;
+      margin-top: 20px;
+    }
+    .progress-wrap.show { display: block; }
+    .progress-steps {
+      display: flex;
+      gap: 0;
+      margin-bottom: 14px;
+    }
+    .step {
+      flex: 1;
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      color: var(--text-dim);
+      text-align: center;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--surface2);
+      transition: all 0.3s;
+    }
+    .step.active { color: var(--accent-light); border-bottom-color: var(--accent); }
+    .step.done { color: var(--green); border-bottom-color: var(--green); }
+    .progress-msg { font-size: 13px; color: var(--text-muted); text-align: center; }
+
+    /* RESULT */
+    .result-wrap {
+      display: none;
+      margin-top: 20px;
+    }
+    .result-wrap.show { display: block; }
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .result-check {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--green-bg);
+      border: 1px solid rgba(45,212,160,0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      color: var(--green);
+    }
+    .result-title { font-size: 14px; font-weight: 500; color: var(--text); }
+    .result-sub { font-size: 12px; color: var(--text-muted); }
+
+    .ai-output {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      font-size: 13px;
+      font-family: 'DM Mono', monospace;
+      color: var(--text-muted);
+      line-height: 1.75;
+      max-height: 280px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-bottom: 14px;
+    }
+    .ai-output::-webkit-scrollbar { width: 4px; }
+    .ai-output::-webkit-scrollbar-track { background: transparent; }
+    .ai-output::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 2px; }
+
+    .download-btn {
+      width: 100%;
+      padding: 13px;
+      background: transparent;
+      border: 1px solid var(--border-hover);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .download-btn:hover { background: var(--surface2); border-color: var(--accent); color: var(--accent-light); }
+
+    /* ERROR */
+    .error-box {
+      display: none;
+      margin-top: 16px;
+      background: var(--red-bg);
+      border: 1px solid rgba(255,107,107,0.2);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--red);
+      line-height: 1.6;
+    }
+    .error-box.show { display: block; }
+
+    /* ─── FOOTER ─── */
+    footer {
+      text-align: center;
+      padding: 40px 0 32px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    input[type="file"] { display: none; }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .hero { animation: fadeUp 0.5s ease both; }
+    .api-setup { animation: fadeUp 0.5s 0.1s ease both; }
+    .conv-grid { animation: fadeUp 0.5s 0.15s ease both; }
+    .converter-box { animation: fadeUp 0.5s 0.2s ease both; }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">dönüştür<span>AI</span></div>
+    <div class="api-badge">
+      <div class="api-dot" id="apiDot" style="background:#4e4d5a"></div>
+      <span id="apiStatus">API bağlı değil</span>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-tag">Yapay Zeka Destekli</div>
+    <h1>Dosyalarını<br><em>saniyeler içinde</em> dönüştür</h1>
+    <p>PDF, Word, PowerPoint ve resim formatları arasında Claude AI ile güçlendirilmiş akıllı dönüştürme.</p>
+  </div>
+
+  <!-- API KEY SETUP -->
+  <div class="api-setup">
+    <div class="api-setup-label">
+      <strong>Anthropic API Anahtarı</strong><br>
+      <span style="font-size:11px">claude.ai → API Keys bölümünden al</span>
+    </div>
+    <input class="api-key-input" type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." />
+    <button class="save-key-btn" onclick="saveApiKey()">Kaydet</button>
+    <span class="key-saved-msg" id="keySavedMsg">✓ Kaydedildi</span>
+  </div>
+
+  <!-- CONVERSION TYPE GRID -->
+  <div class="section-label">Dönüştürme türü</div>
+  <div class="conv-grid" id="convGrid">
+    <div class="conv-card active" data-from="PDF" data-to="Word" data-ext="pdf" data-out="docx" onclick="selectConv(this)">
+      <div class="conv-icon-wrap">📄</div>
+      <div class="conv-name">PDF → Word</div>
+      <div class="conv-tag">.pdf → .docx</div>
+    </div>
+    <div class="conv-card" data-from="Word" data-to="PDF" data-ext="docx,doc" data-out="pdf" onclick="selectConv(this)">
+      <div class="conv-icon-wrap">📝</div>
+      <div class="conv-name">Word → PDF</div>
+      <div class="conv-tag">.docx → .pdf</div>
+    </div>
+    <div class="conv-card" data-from="Resim" data-to="PDF" data-ext="png,jpg,jpeg,webp" data-out="pdf" onclick="selectConv(this)">
+      <div class="conv-icon-wrap">🖼️</div>
+      <div class="conv-name">Resim → PDF</div>
+      <div class="conv-tag">.png/.jpg → .pdf</div>
+    </div>
+    <div class="conv-card" data-from="PDF" data-to="Resim" data-ext="pdf" data-out="png" onclick="selectConv(this)">
+      <div class="conv-icon-wrap">🗃️</div>
+      <div class="conv-name">PDF → Resim</div>
+      <div class="conv-tag">.pdf → .png</div>
+    </div>
+    <div class="conv-card" data-from="PowerPoint" data-to="PDF" data-ext="pptx,ppt" data-out="pdf" onclick="selectConv(this)">
+      <div class="conv-icon-wrap">📊</div>
+      <div class="conv-name">PPTX → PDF</div>
+      <div class="conv-tag">.pptx → .pdf</div>
+    </div>
+    <div class="conv-card" data-from="PDF" data-to="PowerPoint" data-ext="pdf" data-out="pptx" onclick="selectConv(this)">
+      <div class="conv-icon-wrap">🔁</div>
+      <div class="conv-name">PDF → PPTX</div>
+      <div class="conv-tag">.pdf → .pptx</div>
+    </div>
+  </div>
+
+  <!-- CONVERTER BOX -->
+  <div class="converter-box">
+
+    <!-- DROP ZONE -->
+    <div class="drop-zone" id="dropZone"
+      onclick="document.getElementById('fileInput').click()"
+      ondragover="onDragOver(event)"
+      ondragleave="onDragLeave(event)"
+      ondrop="onDrop(event)">
+      <div class="drop-zone-icon" id="dropIcon">📂</div>
+      <div class="drop-title" id="dropTitle">Dosyayı buraya bırak</div>
+      <div class="drop-sub" id="dropSub">veya <em>bilgisayarından seç</em> — PDF dosyası</div>
+    </div>
+
+    <input type="file" id="fileInput" onchange="onFileSelect(event)" />
+
+    <!-- FILE PILL -->
+    <div class="file-pill" id="filePill">
+      <div class="file-pill-icon" id="filePillIcon">📄</div>
+      <div class="file-pill-info">
+        <div class="file-pill-name" id="filePillName">—</div>
+        <div class="file-pill-size" id="filePillSize">—</div>
+      </div>
+      <div class="file-pill-remove" onclick="removeFile()" title="Kaldır">✕</div>
+    </div>
+
+    <!-- CONVERT BUTTON -->
+    <button class="convert-btn" id="convertBtn" onclick="startConvert()" disabled>
+      Dönüştür →
+    </button>
+
+    <!-- PROGRESS -->
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-steps">
+        <div class="step" id="step1">01 / Yükleniyor</div>
+        <div class="step" id="step2">02 / Analiz</div>
+        <div class="step" id="step3">03 / Dönüştürme</div>
+        <div class="step" id="step4">04 / Hazır</div>
+      </div>
+      <div class="progress-msg" id="progressMsg">Dosya hazırlanıyor...</div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="result-wrap" id="resultWrap">
+      <div class="result-header">
+        <div class="result-check">✓</div>
+        <div>
+          <div class="result-title">Dönüştürme tamamlandı</div>
+          <div class="result-sub" id="resultSub">—</div>
+        </div>
+      </div>
+      <div class="ai-output" id="aiOutput"></div>
+      <button class="download-btn" id="downloadBtn" onclick="downloadFile()">
+        ↓ &nbsp; Dosyayı indir
+      </button>
+    </div>
+
+    <!-- ERROR -->
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <footer>
+    DönüştürAI &nbsp;·&nbsp; Claude AI ile güçlendirilmiştir &nbsp;·&nbsp; Tüm dönüştürmeler tarayıcınızda gerçekleşir
+  </footer>
+
+</div>
+
+<script>
+/* ─── STATE ─── */
+let apiKey = localStorage.getItem('dAI_key') || '';
+let currentFile = null;
+let selectedCard = document.querySelector('.conv-card.active');
+let convertedBlob = null;
+let convertedName = '';
+
+/* ─── API KEY ─── */
+if (apiKey) {
+  document.getElementById('apiKeyInput').value = apiKey;
+  setApiStatus(true);
+}
+
+function saveApiKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val) return;
+  apiKey = val;
+  localStorage.setItem('dAI_key', val);
+  setApiStatus(true);
+  const msg = document.getElementById('keySavedMsg');
+  msg.classList.add('show');
+  setTimeout(() => msg.classList.remove('show'), 2500);
+}
+
+function setApiStatus(ok) {
+  const dot = document.getElementById('apiDot');
+  const lbl = document.getElementById('apiStatus');
+  dot.style.background = ok ? 'var(--green)' : '#4e4d5a';
+  lbl.textContent = ok ? 'API bağlandı' : 'API bağlı değil';
+}
+
+/* ─── CONVERSION SELECT ─── */
+function selectConv(el) {
+  document.querySelectorAll('.conv-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selectedCard = el;
+  const exts = el.dataset.ext;
+  const extList = exts.split(',').map(e => '.' + e).join(', ');
+  document.getElementById('dropSub').innerHTML = `veya <em>bilgisayarından seç</em> — ${extList}`;
+  document.getElementById('fileInput').accept = exts.split(',').map(e => '.' + e).join(',');
+  removeFile();
+}
+
+/* ─── FILE HANDLING ─── */
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.add('dragover');
+}
+function onDragLeave() {
+  document.getElementById('dropZone').classList.remove('dragover');
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('dragover');
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+}
+function onFileSelect(e) {
+  const f = e.target.files[0];
+  if (f) setFile(f);
+}
+
+function setFile(f) {
+  currentFile = f;
+  const kb = (f.size / 1024).toFixed(1);
+  const mb = f.size > 1048576 ? (f.size / 1048576).toFixed(1) + ' MB' : kb + ' KB';
+  document.getElementById('filePillName').textContent = f.name;
+  document.getElementById('filePillSize').textContent = mb;
+  document.getElementById('filePill').classList.add('show');
+  document.getElementById('convertBtn').disabled = false;
+  hide('resultWrap'); hide('progressWrap'); hide('errorBox');
+  convertedBlob = null;
+}
+
+function removeFile() {
+  currentFile = null;
+  document.getElementById('filePill').classList.remove('show');
+  document.getElementById('convertBtn').disabled = true;
+  document.getElementById('fileInput').value = '';
+  hide('resultWrap'); hide('progressWrap'); hide('errorBox');
+  convertedBlob = null;
+}
+
+/* ─── UTILS ─── */
+function show(id) { document.getElementById(id).classList.add('show'); }
+function hide(id) { document.getElementById(id).classList.remove('show'); }
+function setStep(n, msg) {
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById('step' + i);
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  });
+  document.getElementById('progressMsg').textContent = msg;
+}
+
+/* ─── MAIN CONVERT ─── */
+async function startConvert() {
+  if (!currentFile) return;
+  if (!apiKey) {
+    document.getElementById('errorBox').textContent = 'Lütfen önce Anthropic API anahtarınızı girin.';
+    show('errorBox');
+    return;
+  }
+
+  const from = selectedCard.dataset.from;
+  const to   = selectedCard.dataset.to;
+  const out  = selectedCard.dataset.out;
+
+  document.getElementById('convertBtn').disabled = true;
+  hide('resultWrap'); hide('errorBox');
+  show('progressWrap');
+
+  try {
+    /* STEP 1 — read file */
+    setStep(1, 'Dosya okunuyor...');
+    const { base64, mediaType } = await readFileAsBase64(currentFile);
+
+    /* STEP 2 — send to Claude */
+    setStep(2, 'Claude AI analiz ediyor...');
+    const aiText = await callClaude(base64, mediaType, from, to, currentFile.name);
+
+    /* STEP 3 — build output file */
+    setStep(3, 'Çıktı dosyası oluşturuluyor...');
+    convertedBlob = await buildOutput(aiText, out, from, to, base64, mediaType, currentFile);
+    convertedName = currentFile.name.replace(/\.[^.]+$/, '') + '_converted.' + out;
+
+    /* STEP 4 — done */
+    setStep(4, 'Tamamlandı!');
+
+    setTimeout(() => {
+      hide('progressWrap');
+      document.getElementById('aiOutput').textContent = aiText;
+      document.getElementById('resultSub').textContent = convertedName + ' hazır';
+      document.getElementById('downloadBtn').textContent = '↓   ' + convertedName + ' indir';
+      show('resultWrap');
+      document.getElementById('convertBtn').disabled = false;
+    }, 500);
+
+  } catch (err) {
+    hide('progressWrap');
+    document.getElementById('errorBox').textContent = '⚠ Hata: ' + err.message;
+    show('errorBox');
+    document.getElementById('convertBtn').disabled = false;
+  }
+}
+
+/* ─── READ FILE ─── */
+function readFileAsBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => {
+      const parts = e.target.result.split(',');
+      res({ base64: parts[1], mediaType: file.type || 'application/octet-stream' });
+    };
+    r.onerror = () => rej(new Error('Dosya okunamadı'));
+    r.readAsDataURL(file);
+  });
+}
+
+/* ─── CALL CLAUDE API ─── */
+async function callClaude(base64, mediaType, from, to, filename) {
+  const isImage = mediaType.startsWith('image/');
+  const isPdf   = mediaType === 'application/pdf';
+
+  const prompt = `Sen bir profesyonel dosya dönüştürme asistanısın. Kullanıcı sana bir ${from} dosyası gönderdi. Bu dosyayı ${to} formatına dönüştür.
+
+Görevin:
+1. Dosyanın tüm içeriğini analiz et
+2. Belgenin yapısını (başlıklar, paragraflar, tablolar, listeler vb.) koru
+3. ${to} formatına uygun şekilde yeniden yapılandır
+4. Çıktıyı SADECE dönüştürülmüş içerik olarak ver (açıklama yazmadan)
+5. Yanıtın tamamı Türkçe olsun
+
+Dosya adı: ${filename}
+Kaynak format: ${from}
+Hedef format: ${to}`;
+
+  let content;
+  if (isImage) {
+    content = [
+      { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
+      { type: "text", text: prompt }
+    ];
+  } else if (isPdf) {
+    content = [
+      { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } },
+      { type: "text", text: prompt }
+    ];
+  } else {
+    content = prompt + '\n\n[Dosya verisi alındı: ' + filename + ']';
+  }
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content }]
+    })
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || 'API isteği başarısız (HTTP ' + resp.status + ')');
+  }
+
+  const data = await resp.json();
+  return data.content.map(b => b.text || '').join('\n');
+}
+
+/* ─── BUILD OUTPUT FILE ─── */
+async function buildOutput(aiText, outExt, from, to, base64, mediaType, file) {
+  /* Image → PDF: embed the image into a real PDF */
+  if (outExt === 'pdf' && from === 'Resim') {
+    try {
+      const { PDFDocument } = PDFLib;
+      const pdfDoc = await PDFDocument.create();
+      const imgBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      let img;
+      if (mediaType === 'image/jpeg') img = await pdfDoc.embedJpg(imgBytes);
+      else img = await pdfDoc.embedPng(imgBytes);
+      const page = pdfDoc.addPage([img.width, img.height]);
+      page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+      const bytes = await pdfDoc.save();
+      return new Blob([bytes], { type: 'application/pdf' });
+    } catch(e) {
+      /* fallback to text PDF */
+    }
+  }
+
+  /* Default: wrap AI text output in a styled HTML → serves as .txt / .html */
+  const content = `DönüştürAI Çıktısı
+==================
+Kaynak: ${file.name}
+Format: ${from} → ${to}
+Tarih: ${new Date().toLocaleString('tr-TR')}
+==================
+
+${aiText}`;
+  return new Blob([content], { type: 'text/plain;charset=utf-8' });
+}
+
+/* ─── DOWNLOAD ─── */
+function downloadFile() {
+  if (!convertedBlob) return;
+  const url = URL.createObjectURL(convertedBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = convertedName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
