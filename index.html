@@ -6,7 +6,6 @@
   <title>DönüştürAI — Dosya Dönüştürücü</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -169,13 +168,7 @@
     }
     .result-title { font-size: 14px; font-weight: 500; }
     .result-sub { font-size: 12px; color: var(--text-muted); }
-    .ai-output {
-      background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
-      padding: 16px; font-size: 13px; font-family: 'DM Mono', monospace; color: var(--text-muted);
-      line-height: 1.75; max-height: 280px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; margin-bottom: 14px;
-    }
-    .ai-output::-webkit-scrollbar { width: 4px; }
-    .ai-output::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 2px; }
+
     .download-btn {
       width: 100%; padding: 13px; background: transparent; border: 1px solid var(--border-hover);
       border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; color: var(--text);
@@ -204,44 +197,44 @@
     <div class="logo">dönüştür<span>AI</span></div>
     <div class="api-badge">
       <div class="api-dot"></div>
-      <span>Claude AI aktif</span>
+      <span>CloudConvert aktif</span>
     </div>
   </header>
 
   <div class="hero">
-    <div class="hero-tag">Yapay Zeka Destekli</div>
+    <div class="hero-tag">Gerçek Dosya Dönüştürme</div>
     <h1>Dosyalarını<br><em>saniyeler içinde</em> dönüştür</h1>
-    <p>PDF, Word, PowerPoint ve resim formatları arasında Claude AI ile güçlendirilmiş akıllı dönüştürme.</p>
+    <p>PDF, Word, PowerPoint ve resim formatları arasında gerçek format dönüşümü.</p>
   </div>
 
   <div class="section-label">Dönüştürme türü</div>
   <div class="conv-grid">
-    <div class="conv-card active" data-from="PDF" data-to="Word" data-ext="pdf" data-out="docx" onclick="selectConv(this)">
+    <div class="conv-card active" data-ext="pdf" data-out="docx" onclick="selectConv(this)">
       <div class="conv-icon-wrap">📄</div>
       <div class="conv-name">PDF → Word</div>
       <div class="conv-tag">.pdf → .docx</div>
     </div>
-    <div class="conv-card" data-from="Word" data-to="PDF" data-ext="docx,doc" data-out="pdf" onclick="selectConv(this)">
+    <div class="conv-card" data-ext="docx,doc" data-out="pdf" onclick="selectConv(this)">
       <div class="conv-icon-wrap">📝</div>
       <div class="conv-name">Word → PDF</div>
       <div class="conv-tag">.docx → .pdf</div>
     </div>
-    <div class="conv-card" data-from="Resim" data-to="PDF" data-ext="png,jpg,jpeg,webp" data-out="pdf" onclick="selectConv(this)">
+    <div class="conv-card" data-ext="png,jpg,jpeg,webp" data-out="pdf" onclick="selectConv(this)">
       <div class="conv-icon-wrap">🖼️</div>
       <div class="conv-name">Resim → PDF</div>
       <div class="conv-tag">.png/.jpg → .pdf</div>
     </div>
-    <div class="conv-card" data-from="PDF" data-to="Resim" data-ext="pdf" data-out="png" onclick="selectConv(this)">
+    <div class="conv-card" data-ext="pdf" data-out="png" onclick="selectConv(this)">
       <div class="conv-icon-wrap">🗃️</div>
       <div class="conv-name">PDF → Resim</div>
       <div class="conv-tag">.pdf → .png</div>
     </div>
-    <div class="conv-card" data-from="PowerPoint" data-to="PDF" data-ext="pptx,ppt" data-out="pdf" onclick="selectConv(this)">
+    <div class="conv-card" data-ext="pptx,ppt" data-out="pdf" onclick="selectConv(this)">
       <div class="conv-icon-wrap">📊</div>
       <div class="conv-name">PPTX → PDF</div>
       <div class="conv-tag">.pptx → .pdf</div>
     </div>
-    <div class="conv-card" data-from="PDF" data-to="PowerPoint" data-ext="pdf" data-out="pptx" onclick="selectConv(this)">
+    <div class="conv-card" data-ext="pdf" data-out="pptx" onclick="selectConv(this)">
       <div class="conv-icon-wrap">🔁</div>
       <div class="conv-name">PDF → PPTX</div>
       <div class="conv-tag">.pdf → .pptx</div>
@@ -275,8 +268,8 @@
     <div class="progress-wrap" id="progressWrap">
       <div class="progress-steps">
         <div class="step" id="step1">01 / Yükleniyor</div>
-        <div class="step" id="step2">02 / Analiz</div>
-        <div class="step" id="step3">03 / Dönüştürme</div>
+        <div class="step" id="step2">02 / Dönüştürülüyor</div>
+        <div class="step" id="step3">03 / Hazırlanıyor</div>
         <div class="step" id="step4">04 / Hazır</div>
       </div>
       <div class="progress-msg" id="progressMsg">Dosya hazırlanıyor...</div>
@@ -290,7 +283,6 @@
           <div class="result-sub" id="resultSub">—</div>
         </div>
       </div>
-      <div class="ai-output" id="aiOutput"></div>
       <button class="download-btn" id="downloadBtn" onclick="downloadFile()">
         ↓ &nbsp; Dosyayı indir
       </button>
@@ -300,13 +292,12 @@
   </div>
 
   <footer>
-    DönüştürAI &nbsp;·&nbsp; Claude AI ile güçlendirilmiştir &nbsp;·&nbsp; Tüm işlemler güvenli proxy üzerinden
+    DönüştürAI &nbsp;·&nbsp; CloudConvert ile güçlendirilmiştir &nbsp;·&nbsp; Tüm işlemler güvenli proxy üzerinden
   </footer>
 </div>
 
 <script>
-  // ── Cloudflare Worker proxy adresin ──
- const WORKER_URL = 'https://donustur-proxy3.ardaakcay591.workers.dev';
+  const WORKER_URL = 'https://donustur-proxy3.ardaakcay591.workers.dev';
 
   let currentFile = null;
   let selectedCard = document.querySelector('.conv-card.active');
@@ -363,9 +354,7 @@
 
   async function startConvert() {
     if (!currentFile) return;
-    const from = selectedCard.dataset.from;
-    const to   = selectedCard.dataset.to;
-    const out  = selectedCard.dataset.out;
+    const out = selectedCard.dataset.out;
 
     document.getElementById('convertBtn').disabled = true;
     hide('resultWrap'); hide('errorBox');
@@ -373,19 +362,21 @@
 
     try {
       setStep(1, 'Dosya okunuyor...');
-      const { base64, mediaType } = await readFile(currentFile);
+      const { base64 } = await readFile(currentFile);
 
-      setStep(2, 'Claude AI analiz ediyor...');
-      const aiText = await callProxy(base64, mediaType, from, to, currentFile.name);
+      setStep(2, 'CloudConvert\'e gönderiliyor...');
+      const result = await callWorker(base64, currentFile.name, out);
 
-      setStep(3, 'Çıktı dosyası oluşturuluyor...');
-      convertedBlob = await buildOutput(aiText, out, from, base64, mediaType, currentFile);
-      convertedName = currentFile.name.replace(/\.[^.]+$/, '') + '_converted.txt';
+      setStep(3, 'Dosya hazırlanıyor...');
+      const binaryStr = atob(result.fileBase64);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+      convertedBlob = new Blob([bytes]);
+      convertedName = result.fileName;
 
       setStep(4, 'Tamamlandı!');
       setTimeout(() => {
         hide('progressWrap');
-        document.getElementById('aiOutput').textContent = aiText;
         document.getElementById('resultSub').textContent = convertedName + ' hazır';
         document.getElementById('downloadBtn').textContent = '↓   ' + convertedName + ' indir';
         show('resultWrap');
@@ -405,79 +396,23 @@
       const r = new FileReader();
       r.onload = e => {
         const parts = e.target.result.split(',');
-        res({ base64: parts[1], mediaType: file.type || 'application/octet-stream' });
+        res({ base64: parts[1] });
       };
       r.onerror = () => rej(new Error('Dosya okunamadı'));
       r.readAsDataURL(file);
     });
   }
 
-  async function callProxy(base64, mediaType, from, to, filename) {
-    const isImage = mediaType.startsWith('image/');
-    const isPdf   = mediaType === 'application/pdf';
-
-    const prompt = `Sen bir profesyonel dosya dönüştürme asistanısın. Kullanıcı sana bir ${from} dosyası gönderdi. Bu dosyayı ${to} formatına dönüştür.
-
-Görevin:
-1. Dosyanın tüm içeriğini analiz et ve yapısını koru (başlıklar, paragraflar, tablolar, listeler)
-2. ${to} formatına uygun şekilde yapılandır
-3. Yanıtını SADECE dönüştürülmüş içerik olarak ver, ek açıklama yazma
-4. Türkçe karakterleri doğru kullan
-
-Dosya: ${filename} | ${from} → ${to}`;
-
-    let content;
-    if (isImage) {
-      content = [
-        { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-        { type: 'text', text: prompt }
-      ];
-    } else if (isPdf) {
-      content = [
-        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
-        { type: 'text', text: prompt }
-      ];
-    } else {
-      content = prompt;
-    }
-
+  async function callWorker(base64, fileName, outputFormat) {
     const resp = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
-        messages: [{ role: 'user', content }]
-      })
+      body: JSON.stringify({ fileBase64: base64, fileName, outputFormat })
     });
 
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error?.message || 'Proxy hatası: HTTP ' + resp.status);
-    }
-
     const data = await resp.json();
-    if (data.error) throw new Error(data.error);
-    return data.content.map(b => b.text || '').join('\n');
-  }
-
-  async function buildOutput(aiText, outExt, from, base64, mediaType, file) {
-    if (outExt === 'pdf' && from === 'Resim') {
-      try {
-        const { PDFDocument } = PDFLib;
-        const pdfDoc = await PDFDocument.create();
-        const imgBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-        let img;
-        if (mediaType === 'image/jpeg') img = await pdfDoc.embedJpg(imgBytes);
-        else img = await pdfDoc.embedPng(imgBytes);
-        const page = pdfDoc.addPage([img.width, img.height]);
-        page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
-        const bytes = await pdfDoc.save();
-        return new Blob([bytes], { type: 'application/pdf' });
-      } catch(e) { /* fallback */ }
-    }
-    const content = `DönüştürAI Çıktısı\n==================\nKaynak: ${file.name}\nFormat: ${from} → ${outExt.toUpperCase()}\nTarih: ${new Date().toLocaleString('tr-TR')}\n==================\n\n${aiText}`;
-    return new Blob([content], { type: 'text/plain;charset=utf-8' });
+    if (!resp.ok || data.error) throw new Error(data.error || 'Sunucu hatası');
+    return data;
   }
 
   function downloadFile() {
